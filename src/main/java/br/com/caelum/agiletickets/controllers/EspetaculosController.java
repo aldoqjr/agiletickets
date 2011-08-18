@@ -10,7 +10,6 @@ import org.joda.time.LocalTime;
 import br.com.caelum.agiletickets.domain.Agenda;
 import br.com.caelum.agiletickets.domain.DiretorioDeEstabelecimentos;
 import br.com.caelum.agiletickets.models.Espetaculo;
-import br.com.caelum.agiletickets.models.Estabelecimento;
 import br.com.caelum.agiletickets.models.Periodicidade;
 import br.com.caelum.agiletickets.models.Sessao;
 import br.com.caelum.vraptor.Get;
@@ -29,8 +28,7 @@ public class EspetaculosController {
 	private final Agenda agenda;
 	private Validator validator;
 	private Result result;
-	private Estabelecimento estabelecimento;
-
+	
 	private final DiretorioDeEstabelecimentos estabelecimentos;
 
 	public EspetaculosController(Agenda agenda, DiretorioDeEstabelecimentos estabelecimentos, Validator validator, Result result) {
@@ -48,6 +46,14 @@ public class EspetaculosController {
 
 	@Post @Path("/espetaculos")
 	public void adiciona(Espetaculo espetaculo) {
+		
+		validaAdicao(espetaculo);
+
+		agenda.cadastra(espetaculo);
+		result.redirectTo(this).lista();
+	}
+
+	private void validaAdicao(Espetaculo espetaculo) {
 		if (Strings.isNullOrEmpty(espetaculo.getNome())) {
 			validator.add(new ValidationMessage("Nome do espetáculo não pode estar em branco", ""));
 		}
@@ -55,20 +61,16 @@ public class EspetaculosController {
 			validator.add(new ValidationMessage("Descrição do espetáculo não pode estar em branco", ""));
 		}
 		validator.onErrorRedirectTo(this).lista();
-
-		agenda.cadastra(espetaculo);
-		result.redirectTo(this).lista();
 	}
-
 
 	@Get @Path("/sessao/{id}")
 	public void sessao(Long id) {
 		Sessao sessao = agenda.sessao(id);
 		if (sessao == null) {
 			result.notFound();
+		} else {
+			result.include("sessao", sessao);
 		}
-
-		result.include("sessao", sessao);
 	}
 
 	@Post @Path("/sessao/{sessaoId}/reserva")
@@ -81,9 +83,7 @@ public class EspetaculosController {
 
 		if (quantidade < 1) {
 			validator.add(new ValidationMessage("Você deve escolher um lugar ou mais", ""));
-		}
-
-		if (!sessao.podeReservar(quantidade)) {
+		} else if (!sessao.podeReservar(quantidade)) {
 			validator.add(new ValidationMessage("Não existem ingressos disponíveis", ""));
 		}
 
@@ -122,9 +122,5 @@ public class EspetaculosController {
 		}
 		validator.onErrorUse(status()).notFound();
 		return espetaculo;
-	}
-
-	private Estabelecimento criaEstabelecimento(Long id) {
-		return estabelecimentos.todos().get(0);
 	}
 }
