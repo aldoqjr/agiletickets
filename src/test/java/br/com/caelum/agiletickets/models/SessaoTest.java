@@ -19,7 +19,7 @@ public class SessaoTest {
 		Sessao sessao = new Sessao();
 		sessao.setTotalIngressos(2);
 
-		Assert.assertFalse(sessao.podeReservar(3));
+		Assert.assertFalse(sessao.podeReservar(3));		
 	}
 
 	@Test
